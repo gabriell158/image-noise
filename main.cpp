@@ -86,6 +86,11 @@ int main()
 
     // Read from the text file
     ifstream imageFile(nameOfFile);
+    
+    if(!imageFile.is_open()) {
+        cerr << "File does not exist\n";
+        return -1;
+    }
 
     string format; // formato da imagem
     getline(imageFile, format);
@@ -132,9 +137,9 @@ int main()
     for (int col = 0; col < collumns; col++)
         for (int row = 0; row < rows; row++)
         {
-            // auto pixel = originalImage.at(row, col);
-            // if (0 == pixel || pixel == 255)
-            // {
+            auto pixel = originalImage.at(row, col);
+            if (0 == pixel || pixel == 255)
+            {
                 xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, 1));
                 if (threadCount == numOfThreads)
                 {
@@ -146,19 +151,19 @@ int main()
                 }
                 threads[threadCount] = thread(fixPixel<int>, ref(xImage), ref(originalImage), ref(row), ref(col), 1);
                 threadCount++;
-            // }
-            // else
-            // {
-            //     xImage.at(row, col) = pixel;
-            // }
+            }
+            else
+            {
+                xImage.at(row, col) = pixel;
+            }
         }
     for (auto &t : threads)
     {
         if (t.joinable())
             t.join();
     }
-    threadCount = 0;
-    ofstream newImageFile(nameOfFile + "_augumented.pgm");
+
+    ofstream newImageFile(nameOfFile.substr(0, nameOfFile.find(".pgm")) + "_augumented.pgm");
 
     newImageFile << format << "\n";
     newImageFile << dimensions << "\n";
