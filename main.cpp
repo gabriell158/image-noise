@@ -68,7 +68,14 @@ T calculateMedian(vector<T> values)
 template <typename T = int>
 void fixPixel(Matrix<T> &newImage, Matrix<T> &originalImage, int &row, int &col, int neighbors)
 {
-    newImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, neighbors));
+    try
+    {
+        newImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, neighbors));
+    }
+    catch (const exception &e)
+    {
+        cerr << e.what() << '\n';
+    }
 }
 
 int main()
@@ -107,6 +114,10 @@ int main()
     auto originalImage = Matrix<int>(rows, collumns);
     auto xImage = Matrix<int>(rows, collumns);
 
+    auto numOfThreads = thread::hardware_concurrency();
+    vector<thread> threads(numOfThreads);
+    auto threadCount = 0;
+
     for (size_t r = 0; r < rows; r++)
     {
         getline(imageFile, myText);
@@ -118,17 +129,13 @@ int main()
 
     imageFile.close();
 
-    auto numOfThreads = thread::hardware_concurrency();
-
-    vector<thread> threads(numOfThreads);
-    auto threadCount = 0;
     for (int col = 0; col < collumns; col++)
         for (int row = 0; row < rows; row++)
         {
-            auto pixel = originalImage.at(row, col);
-            if (0 == pixel || pixel == 255)
-            {
-                // xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, 1));
+            // auto pixel = originalImage.at(row, col);
+            // if (0 == pixel || pixel == 255)
+            // {
+                xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, 1));
                 if (threadCount == numOfThreads)
                 {
                     for (auto &t : threads)
@@ -139,11 +146,11 @@ int main()
                 }
                 threads[threadCount] = thread(fixPixel<int>, ref(xImage), ref(originalImage), ref(row), ref(col), 1);
                 threadCount++;
-            }
-            else
-            {
-                xImage.at(row, col) = pixel;
-            }
+            // }
+            // else
+            // {
+            //     xImage.at(row, col) = pixel;
+            // }
         }
     for (auto &t : threads)
     {
