@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <thread>
 
 using namespace mat;
 using namespace std;
@@ -28,7 +29,7 @@ size_t split(const string &txt, vector<string> &strs, char ch)
 }
 
 template <typename T = int>
-vector<T> getNeighbors(Matrix<T> &matrix, int colRef, int rowRef, int numOfNeighbors)
+vector<T> getNeighbors(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
 {
     vector<T> neighbors;
     auto matrixCols = matrix.get_num_cols();
@@ -64,9 +65,15 @@ T calculateMedian(vector<T> values)
         return values[size / 2];
 }
 
+template <typename T = int>
+void fixPixel(Matrix<T> &newImage, Matrix<T> &originalImage, int &row, int &col, int neighbors)
+{
+    newImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, neighbors));
+}
+
 int main()
 {
-    string nameOfFile = "dataset_easy/001.pgm";
+    string nameOfFile = "dataset_hard/001.pgm";
     // Create a text string, which is used to output the text file
     string myText;
 
@@ -111,10 +118,39 @@ int main()
 
     imageFile.close();
 
+    auto numOfThreads = thread::hardware_concurrency();
+
+    vector<thread> threads(numOfThreads);
+    auto threadCount = 0;
     for (int col = 0; col < collumns; col++)
         for (int row = 0; row < rows; row++)
-            xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, col, row, 1));
-
+        {
+            auto pixel = originalImage.at(row, col);
+            if (0 == pixel || pixel == 255)
+            {
+                // xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, 1));
+                if (threadCount == numOfThreads)
+                {
+                    for (auto &t : threads)
+                    {
+                        t.join();
+                    }
+                    threadCount = 0;
+                }
+                threads[threadCount] = thread(fixPixel<int>, ref(xImage), ref(originalImage), ref(row), ref(col), 1);
+                threadCount++;
+            }
+            else
+            {
+                xImage.at(row, col) = pixel;
+            }
+        }
+    for (auto &t : threads)
+    {
+        if (t.joinable())
+            t.join();
+    }
+    threadCount = 0;
     ofstream newImageFile(nameOfFile + "_augumented.pgm");
 
     newImageFile << format << "\n";
