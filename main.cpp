@@ -30,28 +30,87 @@ size_t split(const string &txt, vector<string> &strs, char ch)
 }
 
 template <typename T = int>
+T fix_upper_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
+{
+    vector<T> neighbors;
+    auto matrixCols = matrix.get_num_cols();
+    auto matrixRows = matrix.get_num_rows();
+    for (auto c = colRef - numOfNeighbors; c <= colRef + numOfNeighbors; c++)
+        for (auto r = rowRef; r <= rowRef + numOfNeighbors; r++)
+            neighbors.push_back(matrix.at(r, c));
+
+    sort(neighbors.begin(), neighbors.end());
+    auto size = neighbors.size();
+    if (size % 2 == 0)
+        return (neighbors[size / 2 - 1] + neighbors[size / 2]) / 2;
+    else
+        return neighbors[size / 2];
+}
+
+template <typename T = int>
+T fix_lower_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
+{
+    vector<T> neighbors;
+    auto matrixCols = matrix.get_num_cols();
+    auto matrixRows = matrix.get_num_rows();
+    for (auto c = colRef - numOfNeighbors; c <= colRef + numOfNeighbors; c++)
+        for (auto r = rowRef - numOfNeighbors; r <= rowRef; r++)
+            neighbors.push_back(matrix.at(r, c));
+
+    sort(neighbors.begin(), neighbors.end());
+    auto size = neighbors.size();
+    if (size % 2 == 0)
+        return (neighbors[size / 2 - 1] + neighbors[size / 2]) / 2;
+    else
+        return neighbors[size / 2];
+}
+
+template <typename T = int>
+T fix_left_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
+{
+    vector<T> neighbors;
+    auto matrixCols = matrix.get_num_cols();
+    auto matrixRows = matrix.get_num_rows();
+    for (auto c = colRef; c <= colRef + numOfNeighbors; c++)
+        for (auto r = rowRef - numOfNeighbors; r <= rowRef + numOfNeighbors; r++)
+            neighbors.push_back(matrix.at(r, c));
+
+    sort(neighbors.begin(), neighbors.end());
+    auto size = neighbors.size();
+    if (size % 2 == 0)
+        return (neighbors[size / 2 - 1] + neighbors[size / 2]) / 2;
+    else
+        return neighbors[size / 2];
+}
+
+template <typename T = int>
+T fix_right_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
+{
+    vector<T> neighbors;
+    auto matrixCols = matrix.get_num_cols();
+    auto matrixRows = matrix.get_num_rows();
+    for (auto c = colRef - numOfNeighbors; c <= colRef; c++)
+        for (auto r = rowRef - numOfNeighbors; r <= rowRef + numOfNeighbors; r++)
+            neighbors.push_back(matrix.at(r, c));
+
+    sort(neighbors.begin(), neighbors.end());
+    auto size = neighbors.size();
+    if (size % 2 == 0)
+        return (neighbors[size / 2 - 1] + neighbors[size / 2]) / 2;
+    else
+        return neighbors[size / 2];
+}
+
+template <typename T = int>
 T fix_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
 {
     vector<T> neighbors;
     auto matrixCols = matrix.get_num_cols();
     auto matrixRows = matrix.get_num_rows();
     for (auto c = colRef - numOfNeighbors; c < colRef + numOfNeighbors + 1; c++)
-    {
         for (auto r = rowRef - numOfNeighbors; r < rowRef + numOfNeighbors + 1; r++)
-        {
-            if ((c > 0 && r > 0) && (c != colRef || r != rowRef) && (c < matrixCols && r < matrixRows))
-            {
-                try
-                {
-                    neighbors.push_back(matrix.at(r, c));
-                }
-                catch (const exception &e)
-                {
-                    cerr << e.what() << '\n';
-                }
-            }
-        }
-    }
+            neighbors.push_back(matrix.at(r, c));
+
     sort(neighbors.begin(), neighbors.end());
     auto size = neighbors.size();
     if (size % 2 == 0)
@@ -97,10 +156,6 @@ int main(int argc, char **argv)
     if (format != "P1")
         getline(imageFile, maxPixValue);
 
-    cout << "Formato : " << format + ".\n";
-    cout << "Dimensao : " << collumns << "x" << rows << +".\n";
-    cout << maxPixValue + ".\n";
-
     auto originalImage = Matrix<int>(rows, collumns);
     auto augumentedImage = Matrix<int>(rows, collumns);
 
@@ -121,11 +176,28 @@ int main(int argc, char **argv)
     // vector<thread> threads(numOfThreads);
     // auto threadCount = 0;
 
-    for (int col = 0; col < collumns; col++)
-        for (int row = 0; row < rows; row++)
+    // TODO tratar os cantos
+    
+    // trata as bordas superior e inferior
+    for (int col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
+        for (auto first_row = 0, last_row = rows - 1; first_row <= numOfNeighbors; first_row++, last_row--)
+        {
+            augumentedImage.at(first_row, col) = fix_upper_pixel(originalImage, first_row, col, numOfNeighbors);
+            augumentedImage.at(last_row, col) = fix_lower_pixel(originalImage, last_row, col, numOfNeighbors);
+        }
+
+    // trata as boradas esqueda e direita
+    for (int row = numOfNeighbors; row < rows - numOfNeighbors; row++)
+        for (auto first_col = 0, last_col = rows - 1; first_col <= numOfNeighbors; first_col++, last_col--)
+        {
+            augumentedImage.at(row, first_col) = fix_left_pixel(originalImage, row, first_col, numOfNeighbors);
+            augumentedImage.at(row, last_col) = fix_right_pixel(originalImage, row, last_col, numOfNeighbors);
+        }
+
+    for (int col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
+        for (int row = numOfNeighbors; row < rows - numOfNeighbors; row++)
         {
             augumentedImage.at(row, col) = fix_pixel(originalImage, row, col, numOfNeighbors);
-            // TODO tratar as boradas da imagem primeiro
             // if (threadCount == numOfThreads)
             // {
             //     for (auto &t : threads)
@@ -137,11 +209,6 @@ int main(int argc, char **argv)
             // threads[threadCount] = thread(fix_pixel<int>, ref(augumentedImage), ref(originalImage), ref(row), ref(col), 1);
             // threadCount++;
         }
-    // for (auto &t : threads)
-    // {
-    //     if (t.joinable())
-    //         t.join();
-    // }
 
     ofstream newImageFile(pathTofile.substr(0, pathTofile.find(".pgm")) + "_augumented.pgm");
 
