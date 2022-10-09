@@ -122,7 +122,7 @@ T fix_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
 int main(int argc, char **argv)
 {
     string pathTofile;
-    int numOfNeighbors = 1;
+    auto numOfNeighbors = 1;
     auto err = get_args(argc, argv, pathTofile, numOfNeighbors);
     if (err)
         return err;
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 
     string myText;
 
-    for (int r = 0; r < rows; r++)
+    for (auto r = 0; r < rows; r++)
     {
         getline(imageFile, myText);
         vector<string> rowVector;
@@ -177,9 +177,9 @@ int main(int argc, char **argv)
     // auto threadCount = 0;
 
     // TODO tratar os cantos
-    
+
     // trata as bordas superior e inferior
-    for (int col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
+    for (auto col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
         for (auto first_row = 0, last_row = rows - 1; first_row <= numOfNeighbors; first_row++, last_row--)
         {
             augumentedImage.at(first_row, col) = fix_upper_pixel(originalImage, first_row, col, numOfNeighbors);
@@ -187,15 +187,15 @@ int main(int argc, char **argv)
         }
 
     // trata as boradas esqueda e direita
-    for (int row = numOfNeighbors; row < rows - numOfNeighbors; row++)
+    for (auto row = numOfNeighbors; row < rows - numOfNeighbors; row++)
         for (auto first_col = 0, last_col = rows - 1; first_col <= numOfNeighbors; first_col++, last_col--)
         {
             augumentedImage.at(row, first_col) = fix_left_pixel(originalImage, row, first_col, numOfNeighbors);
             augumentedImage.at(row, last_col) = fix_right_pixel(originalImage, row, last_col, numOfNeighbors);
         }
 
-    for (int col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
-        for (int row = numOfNeighbors; row < rows - numOfNeighbors; row++)
+    for (auto col = numOfNeighbors; col < collumns - numOfNeighbors; col++)
+        for (auto row = numOfNeighbors; row < rows - numOfNeighbors; row++)
         {
             augumentedImage.at(row, col) = fix_pixel(originalImage, row, col, numOfNeighbors);
             // if (threadCount == numOfThreads)
