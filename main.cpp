@@ -117,9 +117,9 @@ int main(int argc, char **argv)
 
     imageFile.close();
 
-    auto numOfThreads = thread::hardware_concurrency();
-    vector<thread> threads(numOfThreads);
-    auto threadCount = 0;
+    // auto numOfThreads = thread::hardware_concurrency();
+    // vector<thread> threads(numOfThreads);
+    // auto threadCount = 0;
 
     for (int col = 0; col < collumns; col++)
         for (int row = 0; row < rows; row++)
@@ -137,11 +137,11 @@ int main(int argc, char **argv)
             // threads[threadCount] = thread(fix_pixel<int>, ref(augumentedImage), ref(originalImage), ref(row), ref(col), 1);
             // threadCount++;
         }
-    for (auto &t : threads)
-    {
-        if (t.joinable())
-            t.join();
-    }
+    // for (auto &t : threads)
+    // {
+    //     if (t.joinable())
+    //         t.join();
+    // }
 
     ofstream newImageFile(pathTofile.substr(0, pathTofile.find(".pgm")) + "_augumented.pgm");
 
