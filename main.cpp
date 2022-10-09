@@ -1,4 +1,5 @@
-#include "matrix.h"
+#include "matrix.hpp"
+#include "args.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -29,7 +30,7 @@ size_t split(const string &txt, vector<string> &strs, char ch)
 }
 
 template <typename T = int>
-vector<T> getNeighbors(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
+T fix_pixel(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeighbors)
 {
     vector<T> neighbors;
     auto matrixCols = matrix.get_num_cols();
@@ -52,47 +53,31 @@ vector<T> getNeighbors(Matrix<T> &matrix, int rowRef, int colRef, int numOfNeigh
         }
     }
     sort(neighbors.begin(), neighbors.end());
-    return neighbors;
-}
-
-template <typename T = int>
-T calculateMedian(vector<T> values)
-{
-    auto size = values.size();
+    auto size = neighbors.size();
     if (size % 2 == 0)
-        return (values[size / 2 - 1] + values[size / 2]) / 2;
+        return (neighbors[size / 2 - 1] + neighbors[size / 2]) / 2;
     else
-        return values[size / 2];
+        return neighbors[size / 2];
 }
 
-template <typename T = int>
-void fixPixel(Matrix<T> &newImage, Matrix<T> &originalImage, int &row, int &col, int neighbors)
+int main(int argc, char **argv)
 {
-    try
-    {
-        newImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, neighbors));
-    }
-    catch (const exception &e)
-    {
-        cerr << e.what() << '\n';
-    }
-}
+    string pathTofile;
+    int numOfNeighbors = 1;
+    auto err = get_args(argc, argv, pathTofile, numOfNeighbors);
+    if (err)
+        return err;
 
-int main()
-{
-    string nameOfFile = "dataset_hard/001.pgm";
-    // Create a text string, which is used to output the text file
-    string myText;
+    ifstream imageFile(pathTofile);
 
-    // Read from the text file
-    ifstream imageFile(nameOfFile);
-    
-    if(!imageFile.is_open()) {
+    if (!imageFile.good())
+    {
         cerr << "File does not exist\n";
         return -1;
     }
 
     string format; // formato da imagem
+    // TODO nao usar getLine; a imagem nao necessariamente esta quebrada por linhas
     getline(imageFile, format);
 
     string dimensions;
@@ -117,13 +102,11 @@ int main()
     cout << maxPixValue + ".\n";
 
     auto originalImage = Matrix<int>(rows, collumns);
-    auto xImage = Matrix<int>(rows, collumns);
+    auto augumentedImage = Matrix<int>(rows, collumns);
 
-    auto numOfThreads = thread::hardware_concurrency();
-    vector<thread> threads(numOfThreads);
-    auto threadCount = 0;
+    string myText;
 
-    for (size_t r = 0; r < rows; r++)
+    for (int r = 0; r < rows; r++)
     {
         getline(imageFile, myText);
         vector<string> rowVector;
@@ -134,28 +117,25 @@ int main()
 
     imageFile.close();
 
+    auto numOfThreads = thread::hardware_concurrency();
+    vector<thread> threads(numOfThreads);
+    auto threadCount = 0;
+
     for (int col = 0; col < collumns; col++)
         for (int row = 0; row < rows; row++)
         {
-            auto pixel = originalImage.at(row, col);
-            if (0 == pixel || pixel == 255)
-            {
-                xImage.at(row, col) = calculateMedian(getNeighbors(originalImage, row, col, 1));
-                if (threadCount == numOfThreads)
-                {
-                    for (auto &t : threads)
-                    {
-                        t.join();
-                    }
-                    threadCount = 0;
-                }
-                threads[threadCount] = thread(fixPixel<int>, ref(xImage), ref(originalImage), ref(row), ref(col), 1);
-                threadCount++;
-            }
-            else
-            {
-                xImage.at(row, col) = pixel;
-            }
+            augumentedImage.at(row, col) = fix_pixel(originalImage, row, col, numOfNeighbors);
+            // TODO tratar as boradas da imagem primeiro
+            // if (threadCount == numOfThreads)
+            // {
+            //     for (auto &t : threads)
+            //     {
+            //         t.join();
+            //     }
+            //     threadCount = 0;
+            // }
+            // threads[threadCount] = thread(fix_pixel<int>, ref(augumentedImage), ref(originalImage), ref(row), ref(col), 1);
+            // threadCount++;
         }
     for (auto &t : threads)
     {
@@ -163,13 +143,13 @@ int main()
             t.join();
     }
 
-    ofstream newImageFile(nameOfFile.substr(0, nameOfFile.find(".pgm")) + "_augumented.pgm");
+    ofstream newImageFile(pathTofile.substr(0, pathTofile.find(".pgm")) + "_augumented.pgm");
 
     newImageFile << format << "\n";
     newImageFile << dimensions << "\n";
     newImageFile << maxPixValue << "\n";
 
-    newImageFile << xImage.serialize() << "\n";
+    newImageFile << augumentedImage.serialize() << "\n";
 
     newImageFile.close();
 
